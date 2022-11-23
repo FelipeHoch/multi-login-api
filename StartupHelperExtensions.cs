@@ -30,6 +30,6 @@ internal static class StartupHelperExtensions
         app.MapControllers();
 
         return app;
-    }
+    } 
 }
 
