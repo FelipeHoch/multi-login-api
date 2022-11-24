@@ -1,4 +1,6 @@
-﻿namespace multi_login;
+﻿using multi_login.Services;
+
+namespace multi_login;
 
 internal static class StartupHelperExtensions
 {
@@ -6,11 +8,17 @@ internal static class StartupHelperExtensions
     public static WebApplication ConfigureServices(
         this WebApplicationBuilder builder)
     {
+        builder.Services.AddMongoRepository(
+            builder.Configuration.GetSection(
+                nameof(MongoRepositoryOptions)).Get<MongoRepositoryOptions>());
+
         builder.Services.AddControllers();
 
         builder.Services.AddEndpointsApiExplorer();
 
         builder.Services.AddSwaggerGen();
+
+        builder.Services.AddScoped<IUserRepository, UserRepository>();
 
         builder.Services.AddAutoMapper(
             AppDomain.CurrentDomain.GetAssemblies());
@@ -30,7 +38,7 @@ internal static class StartupHelperExtensions
 
         app.UseHttpsRedirection();
 
-        app.UseAuthorization();
+        // app.UseAuthorization();
 
         app.MapControllers();
 
