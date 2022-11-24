@@ -30,5 +30,13 @@ public class User
     [BsonElement("password")]
     [MaxLength(300)]
     public string Password { get; set; }
+
+    public User(string name, string email, string role, string password)
+    {
+        Name = name;
+        Email = email;
+        Role = role;
+        Password = password;
+    }
 }
 
