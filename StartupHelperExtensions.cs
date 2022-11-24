@@ -7,8 +7,13 @@ internal static class StartupHelperExtensions
         this WebApplicationBuilder builder)
     {
         builder.Services.AddControllers();
+
         builder.Services.AddEndpointsApiExplorer();
+
         builder.Services.AddSwaggerGen();
+
+        builder.Services.AddAutoMapper(
+            AppDomain.CurrentDomain.GetAssemblies());
 
         return builder.Build();
     }
