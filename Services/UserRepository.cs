@@ -1,10 +1,21 @@
-﻿using multi_login.Entities;
+﻿using MongoDB.Driver;
+using multi_login.Entities;
 using multi_login.Models;
 
 namespace multi_login.Services;
 
 public class UserRepository : IUserRepository
 {
+    private readonly IMongoCollection<User> _usersCollection;
+
+    public IMongoRepository _mongoRepository;
+
+    public UserRepository(IMongoRepository mongoRepository)
+    {
+        _mongoRepository = mongoRepository;
+
+        _usersCollection = _mongoRepository.Database.GetCollection<User>("users");
+    }
 
     public void AddUser(User user)
     {
@@ -16,9 +27,11 @@ public class UserRepository : IUserRepository
         throw new NotImplementedException();
     }
 
-    public Task<User> GetUserByEmailAsync(string email)
+    public async Task<User> GetUserByEmailAsync(string email)
     {
-        throw new NotImplementedException();
+        return await _usersCollection.Aggregate()
+                                     .Match(user => user.Email == email)
+                                     .FirstOrDefaultAsync();
     }
 
     public Task<User> GetUserByIdAsync(string id)
@@ -36,19 +49,13 @@ public class UserRepository : IUserRepository
         throw new NotImplementedException();
     }
 
-    public Task<bool> UserIsAuth(UserForAuthWithPasswordDTO userForAuth)
+    public async Task<bool> UserIsAuth(UserForAuthWithPasswordDTO userForAuth)
     {
-        // Mock implementation
-        var user = new User("Teste", "teste@teste.com", "admin", "123456");
+        var user = await _usersCollection.Aggregate()
+                                         .Match(user => user.Email == userForAuth.Email && user.Password == userForAuth.Password)
+                                         .FirstOrDefaultAsync();
 
-        if (userForAuth.Email == user.Email && userForAuth.Password == user.Password)
-        {
-            return Task.FromResult(true);
-        } 
-        else
-        {
-            return Task.FromResult(false);
-        }
+        return user != null;
     }
 
     public Task<bool> UserExistsAsync(string id)
