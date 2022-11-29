@@ -14,7 +14,7 @@ public class UserRepository : IUserRepository
     {
         _mongoRepository = mongoRepository;
 
-        _usersCollection = _mongoRepository.Database.GetCollection<User>("users");
+        _usersCollection = _mongoRepository.Client.GetDatabase("multilogin").GetCollection<User>("users");
     }
 
     public void AddUser(User user)

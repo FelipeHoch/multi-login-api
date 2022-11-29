@@ -8,7 +8,7 @@ public class MongoRepository : IMongoRepository
 
     public IMongoClient Client => _mongoClient;
 
-    public IMongoDatabase Database { get; }
+    // public IMongoDatabase Database { get; }
 
     public MongoRepository(MongoRepositoryOptions mongoRepositoryOptions)
     {
@@ -18,6 +18,6 @@ public class MongoRepository : IMongoRepository
 
         _mongoClient = new MongoClient(conf);
 
-        Database = _mongoClient.GetDatabase(mongoRepositoryOptions.Database);
+        // Database = _mongoClient.GetDatabase(mongoRepositoryOptions.Database);
     }
 }

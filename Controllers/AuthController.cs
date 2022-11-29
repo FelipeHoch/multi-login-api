@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using Google.Apis.Auth;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
@@ -13,7 +14,6 @@ using System.Text;
 namespace multi_login.Controllers;
 
 [Route("api/auth")]
-[AllowAnonymous]
 [ApiController]
 public class AuthController : ControllerBase
 {
@@ -30,6 +30,7 @@ public class AuthController : ControllerBase
 
     [HttpPost(Name = "AuthUserWithPassword")]
     [HttpOptions]
+    [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<string>> AuthUserWithPassword(UserForAuthWithPasswordDTO userForAuth)
@@ -45,15 +46,25 @@ public class AuthController : ControllerBase
         return Ok(token);
     }
 
+    [HttpGet(Name = "GoogleClientIdKey")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public ActionResult<string> GoogleClientId()
+    {
+        Console.WriteLine("hit");
+
+        return Ok(_config.GetValue<string>("Google:ClientId"));
+    }
+
     private string CalcHmac(string data)
     {
         var secretKey = _config.GetValue<string>("SecretKeys:Password");
 
         byte[] key = Encoding.ASCII.GetBytes(secretKey);
-        HMACSHA256 myhmacsha256 = new HMACSHA256(key);
+        HMACSHA256 myhmacsha256 = new(key);
         byte[] byteArray = Encoding.ASCII.GetBytes(data);
-        MemoryStream stream = new MemoryStream(byteArray);
-        string result = myhmacsha256.ComputeHash(stream).Aggregate("", (s, e) => s + String.Format("{0:x2}", e), s => s);
+        MemoryStream stream = new(byteArray);
+        string result = myhmacsha256.ComputeHash(stream).Aggregate("", (s, e) => s + string.Format("{0:x2}", e), s => s);
         return result;
     }
 

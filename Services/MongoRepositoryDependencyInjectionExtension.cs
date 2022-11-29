@@ -16,7 +16,5 @@ public class MongoRepositoryOptions
 {
     public string ConnectionString { get; set; }
 
-    public string Database { get; set; }
-
     public string ClientName { get; set; }
 }

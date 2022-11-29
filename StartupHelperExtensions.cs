@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using multi_login.Services;
+using Serilog;
 using System.Text;
 
 namespace multi_login;
@@ -17,7 +19,8 @@ internal static class StartupHelperExtensions
             options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
             options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
             options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-        }).AddJwtBearer(o =>
+        })
+        .AddJwtBearer(o =>
         {
             o.TokenValidationParameters = new TokenValidationParameters
             {
@@ -28,9 +31,31 @@ internal static class StartupHelperExtensions
                 ValidateLifetime = true,
                 ValidateIssuerSigningKey = true,
             };
+        }).AddJwtBearer("GoogleAuth", o => {
+            o.TokenValidationParameters = new TokenValidationParameters
+            {
+                IssuerSigningKey = new SymmetricSecurityKey
+                (Encoding.UTF8.GetBytes(builder.Configuration["Jwt:SecretKey"])),
+                ValidAudience = builder.Configuration["Google:ClientId"],
+                ValidateIssuer = false,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true
+            };
         });
 
-        builder.Services.AddAuthorization();
+        builder.Services.AddAuthorization(op =>
+        {
+            op.DefaultPolicy = new AuthorizationPolicyBuilder()
+                .RequireAuthenticatedUser()
+                .AddAuthenticationSchemes("GoogleAuth")
+                .Build();
+
+            op.AddPolicy("Google", new AuthorizationPolicyBuilder()
+                .RequireAuthenticatedUser()
+                .AddAuthenticationSchemes("GoogleAuth")
+                .Build());
+        });
 
         builder.Services.AddMongoRepository(
             builder.Configuration.GetSection(
@@ -104,8 +129,7 @@ internal static class StartupHelperExtensions
         app.UseAuthentication();
         app.UseAuthorization();
 
-        app.MapControllers()
-           .RequireAuthorization();
+        app.MapControllers().RequireAuthorization();
 
         return app;
     }

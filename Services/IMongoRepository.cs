@@ -4,5 +4,7 @@ namespace multi_login.Services;
 
 public interface IMongoRepository
 {
-    IMongoDatabase Database { get; }
+    // IMongoDatabase Database { get; }
+
+    IMongoClient Client { get; }
 }
