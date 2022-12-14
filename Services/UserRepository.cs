@@ -17,9 +17,11 @@ public class UserRepository : IUserRepository
         _usersCollection = _mongoRepository.Client.GetDatabase("multilogin").GetCollection<User>("users");
     }
 
-    public void AddUser(User user)
+    public async Task<User> AddUser(User user)
     {
-        throw new NotImplementedException();
+        await _usersCollection.InsertOneAsync(user);
+
+        return user;
     }
 
     public void DeleteUser(string id)
@@ -58,8 +60,12 @@ public class UserRepository : IUserRepository
         return user != null;
     }
 
-    public Task<bool> UserExistsAsync(string id)
+    public async Task<bool> UserExistsAsync(string email)
     {
-        throw new NotImplementedException();
+       var user = await _usersCollection.Aggregate()
+                                        .Match(user => user.Email == email)
+                                        .FirstOrDefaultAsync();
+
+        return user != null;
     }
 }

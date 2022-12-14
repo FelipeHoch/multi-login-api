@@ -14,29 +14,26 @@ public class User
     [BsonRequired]
     [BsonElement("name")]
     [MaxLength(50)]
-    public string Name { get; set; }
+    public string Name { get; set; } = string.Empty;
 
     [BsonRequired]
     [BsonElement("email")]
     [MaxLength(150)]
-    public string Email { get; set; }
+    public string Email { get; set; } = string.Empty;
 
     [BsonRequired]
     [BsonElement("role")]
     [MaxLength(50)]
-    public string Role { get; set; }
+    public string Role { get; set; } = string.Empty;
+
+    [BsonRequired]
+    [BsonElement("provider")]
+    [MaxLength(50)]
+    public string Provider { get; set; } = string.Empty;
 
     [BsonIgnoreIfNull]
     [BsonElement("password")]
     [MaxLength(300)]
-    public string Password { get; set; }
-
-    public User(string name, string email, string role, string password)
-    {
-        Name = name;
-        Email = email;
-        Role = role;
-        Password = password;
-    }
+    public string? Password { get; set; }
 }
 

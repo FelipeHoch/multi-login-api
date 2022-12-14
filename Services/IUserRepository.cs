@@ -8,7 +8,7 @@ public interface IUserRepository
     Task<IEnumerable<User>> GetUsersAsync();
     Task<User> GetUserByIdAsync(string id);
     Task<User> GetUserByEmailAsync(string email);
-    void AddUser(User user);
+    Task<User> AddUser(User user);
     void UpdateUser(User user);
     void DeleteUser(string id);
     Task<bool> UserIsAuth(UserForAuthWithPasswordDTO userForAuth);

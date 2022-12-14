@@ -1,9 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using multi_login.Services;
-using Serilog;
 using System.Text;
 
 namespace multi_login;
@@ -26,36 +24,15 @@ internal static class StartupHelperExtensions
             {
                 IssuerSigningKey = new SymmetricSecurityKey
                 (Encoding.UTF8.GetBytes(builder.Configuration["Jwt:SecretKey"])),
-                ValidateIssuer = false,
+                ValidIssuer = builder.Configuration["Jwt:Issuer"],
+                ValidateIssuer = true,
                 ValidateAudience = false,
                 ValidateLifetime = true,
                 ValidateIssuerSigningKey = true,
             };
-        }).AddJwtBearer("GoogleAuth", o => {
-            o.TokenValidationParameters = new TokenValidationParameters
-            {
-                IssuerSigningKey = new SymmetricSecurityKey
-                (Encoding.UTF8.GetBytes(builder.Configuration["Jwt:SecretKey"])),
-                ValidAudience = builder.Configuration["Google:ClientId"],
-                ValidateIssuer = false,
-                ValidateAudience = true,
-                ValidateLifetime = true,
-                ValidateIssuerSigningKey = true
-            };
         });
 
-        builder.Services.AddAuthorization(op =>
-        {
-            op.DefaultPolicy = new AuthorizationPolicyBuilder()
-                .RequireAuthenticatedUser()
-                .AddAuthenticationSchemes("GoogleAuth")
-                .Build();
-
-            op.AddPolicy("Google", new AuthorizationPolicyBuilder()
-                .RequireAuthenticatedUser()
-                .AddAuthenticationSchemes("GoogleAuth")
-                .Build());
-        });
+        builder.Services.AddAuthorization();
 
         builder.Services.AddMongoRepository(
             builder.Configuration.GetSection(
@@ -82,7 +59,7 @@ internal static class StartupHelperExtensions
             op.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
             {
                 Description = "JWT Authorization Header. \r\n\r\n" + 
-                    "Digite 'Bearer' e o token ao lado, conforme exemplo: Bearer {seu token}",
+                    "Type 'Bearer' and your token on the right side, as in the example: Bearer {your token}",
                 Name = "Authorization",
                 In = ParameterLocation.Header,
                 Type = SecuritySchemeType.ApiKey,

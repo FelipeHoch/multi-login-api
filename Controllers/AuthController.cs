@@ -1,6 +1,6 @@
-﻿using Google.Apis.Auth;
+﻿using AutoMapper;
+using Google.Apis.Auth;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using multi_login.Entities;
@@ -21,11 +21,15 @@ public class AuthController : ControllerBase
 
     private readonly IConfiguration _config;
 
-    public AuthController(IUserRepository userRepository, IConfiguration config)
+    private readonly IMapper _mapper;
+
+    public AuthController(IUserRepository userRepository, IConfiguration config, IMapper mapper)
     {
         _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
 
         _config = config;
+
+        _mapper = mapper;
     }
 
     [HttpPost(Name = "AuthUserWithPassword")]
@@ -46,14 +50,42 @@ public class AuthController : ControllerBase
         return Ok(token);
     }
 
-    [HttpGet(Name = "GoogleClientIdKey")]
-    [Authorize]
+    [HttpGet("{token}", Name = "GoogleClientIdKey")]
+    [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public ActionResult<string> GoogleClientId()
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<string>> GoogleClientId(string token)
     {
-        Console.WriteLine("hit");
+        GoogleJsonWebSignature.Payload tokenPayload;
+        User user;
 
-        return Ok(_config.GetValue<string>("Google:ClientId"));
+        try
+        {
+            tokenPayload = await GoogleJsonWebSignature.ValidateAsync(token);
+        } 
+        catch
+        {
+            return Unauthorized();
+        }
+
+        if (!TokenIsValid(tokenPayload)) return Unauthorized();
+
+        bool userExists = await _userRepository.UserExistsAsync(tokenPayload.Email);
+
+        if (!userExists)
+        {
+            user = _mapper.Map<User>(tokenPayload);
+
+            user = await _userRepository.AddUser(user);
+        } 
+        else
+        {
+            user = await _userRepository.GetUserByEmailAsync(tokenPayload.Email);
+        }
+
+        string appToken = GenerateToken(user);
+
+        return Ok(appToken);
     }
 
     private string CalcHmac(string data)
@@ -85,16 +117,25 @@ public class AuthController : ControllerBase
 
         var exp = _config.GetValue<int>("Jwt:Lifetime");
         DateTime dt = DateTime.Now.AddSeconds(exp);
-        exp = (int)dt.Subtract(DateTime.UnixEpoch).TotalSeconds;
-        claims.Add(new Claim("exp", exp.ToString(), ClaimValueTypes.Integer));
+
+        var iss = _config.GetValue<string>("Jwt:Issuer");
 
         var tokenOptions = new JwtSecurityToken(
             claims: claims,
-            signingCredentials: signinCredentials
+            signingCredentials: signinCredentials,
+            issuer: iss,
+            expires: dt
         );
 
         var token = new JwtSecurityTokenHandler().WriteToken(tokenOptions);
 
         return token;
+    }
+
+    private bool TokenIsValid(GoogleJsonWebSignature.Payload tokenPayload)
+    {
+        if (tokenPayload == null) return false;
+
+        return tokenPayload.AudienceAsList.FirstOrDefault(aud => aud == _config.GetValue<string>("Google:ClientId")) != null;
     }
 }
