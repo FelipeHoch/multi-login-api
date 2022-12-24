@@ -29,9 +29,9 @@ public class UserRepository : IUserRepository
         throw new NotImplementedException();
     }
 
-    public async Task<User> GetUserByEmailAsync(string email)
+    public Task<User> GetUserByEmailAsync(string email)
     {
-        return await _usersCollection.Aggregate()
+        return _usersCollection.Aggregate()
                                      .Match(user => user.Email == email)
                                      .FirstOrDefaultAsync();
     }
