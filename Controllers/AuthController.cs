@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Google.Apis.Auth;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using multi_login.Entities;
@@ -33,7 +34,6 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost(Name = "AuthUserWithPassword")]
-    [HttpOptions]
     [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -50,18 +50,20 @@ public class AuthController : ControllerBase
         return Ok(token);
     }
 
-    [HttpGet("{token}", Name = "GoogleClientIdKey")]
+    [HttpPost("google")]
     [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<string>> GoogleClientId(string token)
+    public async Task<ActionResult<string>> GoogleClientId(TokenDTO token)
     {
         GoogleJsonWebSignature.Payload tokenPayload;
         User user;
 
+        Console.WriteLine(token.Token);
+
         try
         {
-            tokenPayload = await GoogleJsonWebSignature.ValidateAsync(token);
+            tokenPayload = await GoogleJsonWebSignature.ValidateAsync(token.Token);
         } 
         catch
         {
@@ -90,7 +92,7 @@ public class AuthController : ControllerBase
 
     private string CalcHmac(string data)
     {
-        var secretKey = _config.GetValue<string>("SecretKeys:Password");
+        var secretKey = Environment.GetEnvironmentVariable("SECRET_PASSWORD");
 
         byte[] key = Encoding.ASCII.GetBytes(secretKey);
         HMACSHA256 myhmacsha256 = new(key);
@@ -102,7 +104,7 @@ public class AuthController : ControllerBase
 
     private string GenerateToken(User user)
     {
-        var secretKeyEnconded = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config.GetValue<string>("Jwt:SecretKey")));
+        var secretKeyEnconded = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Environment.GetEnvironmentVariable("JWT_KEY")));
         var signinCredentials = new SigningCredentials(secretKeyEnconded, SecurityAlgorithms.HmacSha256);
 
         var claims = new List<Claim>();
@@ -115,10 +117,10 @@ public class AuthController : ControllerBase
         var iat = (int)(DateTime.Now.Subtract(DateTime.UnixEpoch)).TotalSeconds;
         claims.Add(new Claim("iat", iat.ToString(), ClaimValueTypes.Integer));
 
-        var exp = _config.GetValue<int>("Jwt:Lifetime");
+        var exp = int.Parse(Environment.GetEnvironmentVariable("JWT_LIFETIME"));
         DateTime dt = DateTime.Now.AddSeconds(exp);
 
-        var iss = _config.GetValue<string>("Jwt:Issuer");
+        var iss = Environment.GetEnvironmentVariable("JWT_ISSUER");
 
         var tokenOptions = new JwtSecurityToken(
             claims: claims,
@@ -136,6 +138,6 @@ public class AuthController : ControllerBase
     {
         if (tokenPayload == null) return false;
 
-        return tokenPayload.AudienceAsList.FirstOrDefault(aud => aud == _config.GetValue<string>("Google:ClientId")) != null;
+        return tokenPayload.AudienceAsList.FirstOrDefault(aud => aud == Environment.GetEnvironmentVariable("GOOGLE_CLIENT") != null;
     }
 }

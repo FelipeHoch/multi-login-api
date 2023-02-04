@@ -8,10 +8,22 @@ namespace multi_login;
 
 internal static class StartupHelperExtensions
 {
+    private static string Origins { get; } = "_origins";
+
     // Add services to the container.
     public static WebApplication ConfigureServices(
         this WebApplicationBuilder builder)
     {
+        builder.Services.AddCors(options => {
+            options.AddPolicy(name: Origins, 
+                policy =>
+                {
+                    policy.AllowAnyMethod();
+                    policy.AllowAnyOrigin();
+                    policy.AllowAnyHeader();
+                });
+        });
+
         builder.Services.AddAuthentication(options =>
         {
             options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -23,8 +35,8 @@ internal static class StartupHelperExtensions
             o.TokenValidationParameters = new TokenValidationParameters
             {
                 IssuerSigningKey = new SymmetricSecurityKey
-                (Encoding.UTF8.GetBytes(builder.Configuration["Jwt:SecretKey"])),
-                ValidIssuer = builder.Configuration["Jwt:Issuer"],
+                (Encoding.UTF8.GetBytes(Environment.GetEnvironmentVariable("JWT_KEY"))),
+                ValidIssuer = Environment.GetEnvironmentVariable("JWT_ISSUER"),
                 ValidateIssuer = true,
                 ValidateAudience = false,
                 ValidateLifetime = true,
@@ -34,9 +46,11 @@ internal static class StartupHelperExtensions
 
         builder.Services.AddAuthorization();
 
-        builder.Services.AddMongoRepository(
-            builder.Configuration.GetSection(
-                nameof(MongoRepositoryOptions)).Get<MongoRepositoryOptions>());
+        builder.Services.AddMongoRepository(new MongoRepositoryOptions
+        {
+            ClientName = Environment.GetEnvironmentVariable("MONGODB_CLIENT_NAME"),
+            ConnectionString = Environment.GetEnvironmentVariable("MONGODB_URI")
+        });
 
         builder.Services.AddControllers();
 
@@ -102,6 +116,8 @@ internal static class StartupHelperExtensions
         }
 
         app.UseHttpsRedirection();
+
+        app.UseCors(Origins);
 
         app.UseAuthentication();
         app.UseAuthorization();
