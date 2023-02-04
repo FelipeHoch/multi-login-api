@@ -138,6 +138,6 @@ public class AuthController : ControllerBase
     {
         if (tokenPayload == null) return false;
 
-        return tokenPayload.AudienceAsList.FirstOrDefault(aud => aud == Environment.GetEnvironmentVariable("GOOGLE_CLIENT") != null;
+        return tokenPayload.AudienceAsList.FirstOrDefault(aud => aud == Environment.GetEnvironmentVariable("GOOGLE_CLIENT")) != null;
     }
 }
