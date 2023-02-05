@@ -9,6 +9,8 @@ public class UserProfile : Profile
     {
         CreateMap<Entities.User, Models.UserFriendlyDTO>();
 
+        CreateMap<Entities.User, Models.UserFriendlyWithTokenDTO>();
+
         CreateMap<Models.UserForCreationDTO, Entities.User>();
 
         CreateMap<GoogleJsonWebSignature.Payload, Entities.User>()

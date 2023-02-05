@@ -1,8 +1,11 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using multi_login.Services;
+using Newtonsoft.Json.Serialization;
 using System.Text;
+using System.Text.Json;
 
 namespace multi_login;
 
@@ -52,7 +55,12 @@ internal static class StartupHelperExtensions
             ConnectionString = Environment.GetEnvironmentVariable("MONGODB_URI")
         });
 
-        builder.Services.AddControllers();
+        builder.Services.AddControllers().AddNewtonsoftJson(setupAction =>
+        {
+            setupAction.SerializerSettings.ContractResolver =
+                new CamelCasePropertyNamesContractResolver();
+        });
+
 
         builder.Services.AddEndpointsApiExplorer();
 

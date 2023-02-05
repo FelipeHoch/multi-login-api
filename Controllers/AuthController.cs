@@ -87,7 +87,11 @@ public class AuthController : ControllerBase
 
         string appToken = GenerateToken(user);
 
-        return Ok(appToken);
+        var userWithToken = _mapper.Map<UserFriendlyWithTokenDTO>(user);
+
+        userWithToken.Token = appToken;
+
+        return Ok(userWithToken);
     }
 
     private string CalcHmac(string data)
@@ -107,12 +111,13 @@ public class AuthController : ControllerBase
         var secretKeyEnconded = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Environment.GetEnvironmentVariable("JWT_KEY")));
         var signinCredentials = new SigningCredentials(secretKeyEnconded, SecurityAlgorithms.HmacSha256);
 
-        var claims = new List<Claim>();
-
-        claims.Add(new Claim("name", user.Name, ClaimTypes.GivenName));
-        claims.Add(new Claim("role", user.Role, ClaimTypes.Role));
-        claims.Add(new Claim("email", user.Email, ClaimTypes.Email));
-        claims.Add(new Claim("act", user.Id, ClaimTypes.Actor));
+        var claims = new List<Claim>
+        {
+            new Claim("name", user.Name, ClaimTypes.GivenName),
+            new Claim("role", user.Role, ClaimTypes.Role),
+            new Claim("email", user.Email, ClaimTypes.Email),
+            new Claim("act", user.Id, ClaimTypes.Actor)
+        };
 
         var iat = (int)(DateTime.Now.Subtract(DateTime.UnixEpoch)).TotalSeconds;
         claims.Add(new Claim("iat", iat.ToString(), ClaimValueTypes.Integer));
@@ -136,8 +141,16 @@ public class AuthController : ControllerBase
 
     private bool TokenIsValid(GoogleJsonWebSignature.Payload tokenPayload)
     {
+        var googleClient = Environment.GetEnvironmentVariable("GOOGLE_CLIENT");
+
         if (tokenPayload == null) return false;
 
-        return tokenPayload.AudienceAsList.FirstOrDefault(aud => aud == Environment.GetEnvironmentVariable("GOOGLE_CLIENT")) != null;
+        return tokenPayload.AudienceAsList.FirstOrDefault(aud => aud == googleClient) != null;
+    }
+
+    private static string Base64Encode<T>(T data)
+    {
+        var dataStr = System.Text.Json.JsonSerializer.Serialize(data);
+        return Convert.ToBase64String(Encoding.UTF8.GetBytes(dataStr));
     }
 }
