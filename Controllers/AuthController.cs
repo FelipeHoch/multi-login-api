@@ -54,7 +54,7 @@ public class AuthController : ControllerBase
     [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<string>> GoogleClientId(TokenDTO token)
+    public async Task<ActionResult<UserFriendlyWithTokenDTO>> GoogleClientId(TokenDTO token)
     {
         GoogleJsonWebSignature.Payload tokenPayload;
         User user;
