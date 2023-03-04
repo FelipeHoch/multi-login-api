@@ -14,7 +14,7 @@ using System.Text;
 
 namespace multi_login.Controllers;
 
-[Route("api/auth")]
+[Route("auth")]
 [ApiController]
 public class AuthController : ControllerBase
 {
