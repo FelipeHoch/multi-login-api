@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -11,22 +11,10 @@ namespace multi_login;
 
 internal static class StartupHelperExtensions
 {
-    private static string Origins { get; } = "_origins";
-
     // Add services to the container.
     public static WebApplication ConfigureServices(
         this WebApplicationBuilder builder)
     {
-        builder.Services.AddCors(options => {
-            options.AddPolicy(name: Origins, 
-                policy =>
-                {
-                    policy.AllowAnyMethod();
-                    policy.AllowAnyOrigin();
-                    policy.AllowAnyHeader();
-                });
-        });
-
         builder.Services.AddAuthentication(options =>
         {
             options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -119,13 +107,25 @@ internal static class StartupHelperExtensions
         // Configure the HTTP request pipeline.
         if (app.Environment.IsDevelopment())
         {
+            app.UseCors(builder =>
+                builder
+                .SetIsOriginAllowed(s => true)
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials()
+                );
+
             app.UseSwagger();
             app.UseSwaggerUI();
         }
 
-        app.UseHttpsRedirection();
-
-        app.UseCors(Origins);
+	app.UseCors(builder =>
+                builder
+                .SetIsOriginAllowed(s => true)
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials()
+                );
 
         app.UseAuthentication();
         app.UseAuthorization();

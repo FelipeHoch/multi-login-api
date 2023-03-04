@@ -94,6 +94,15 @@ public class AuthController : ControllerBase
         return Ok(userWithToken);
     }
 
+    [HttpPut]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public ActionResult Test()
+    {
+        return Ok("/h");
+    }
+
     private string CalcHmac(string data)
     {
         var secretKey = Environment.GetEnvironmentVariable("SECRET_PASSWORD");
