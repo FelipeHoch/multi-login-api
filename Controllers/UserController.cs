@@ -51,6 +51,15 @@ public class UserController : ControllerBase
                 return BadRequest();
             }
 
+            userToCreate.Provider = userToCreate.Provider.ToLower();
+
+            var userAlreadyExists = await _userRepository.GetUserByEmailAsync(userToCreate.Email, userToCreate.Provider);
+
+            if (userAlreadyExists != null) 
+            {
+                return BadRequest();
+            }
+
             var user = await _userRepository.AddUser(userToCreate);
 
             var userFriendly = _mapper.Map<UserFriendlyDTO>(user);
@@ -62,7 +71,7 @@ public class UserController : ControllerBase
 
             return CreatedAtRoute("UserById", new { id = userFriendly.Id }, userFriendly);
         }
-        catch (Exception ex) 
+        catch (Exception) 
         {
             throw;
         }

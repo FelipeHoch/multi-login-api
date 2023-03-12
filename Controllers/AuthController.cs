@@ -62,7 +62,6 @@ public class AuthController : ControllerBase
         GoogleJsonWebSignature.Payload tokenPayload;
         User user;
 
-
         try
         {
             tokenPayload = await GoogleJsonWebSignature.ValidateAsync(token.Token);
@@ -74,17 +73,15 @@ public class AuthController : ControllerBase
 
         if (!TokenIsValid(tokenPayload)) return Unauthorized();
 
-        bool userExists = await _userRepository.UserExistsAsync(tokenPayload.Email, "Google");
+        bool userExists = await _userRepository.UserExistsAsync(tokenPayload.Email, "google");
 
         if (!userExists)
         {
-            user = _mapper.Map<User>(tokenPayload);
-
-            user = await _userRepository.AddUser(user);
+            return Unauthorized();
         } 
         else
         {
-            user = await _userRepository.GetUserByEmailAsync(tokenPayload.Email, "Google");
+            user = await _userRepository.GetUserByEmailAsync(tokenPayload.Email, "google");
         }
 
         string appToken = GenerateToken(user);
