@@ -11,6 +11,8 @@ public class UserProfile : Profile
 
         CreateMap<Entities.User, Models.UserFriendlyWithTokenDTO>();
 
+        CreateMap<Entities.User, Models.UserFriendlyWithIdpIdDTO>();
+
         CreateMap<Models.UserForCreationDTO, Entities.User>();
 
         CreateMap<GoogleJsonWebSignature.Payload, Entities.User>()

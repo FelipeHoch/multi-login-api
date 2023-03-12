@@ -29,10 +29,10 @@ public class UserRepository : IUserRepository
         throw new NotImplementedException();
     }
 
-    public Task<User> GetUserByEmailAsync(string email)
+    public Task<User> GetUserByEmailAsync(string email, string loginMethod)
     {
         return _usersCollection.Aggregate()
-                                     .Match(user => user.Email == email)
+                                     .Match(user => user.Email == email && user.Provider == loginMethod)
                                      .FirstOrDefaultAsync();
     }
 
@@ -60,10 +60,10 @@ public class UserRepository : IUserRepository
         return user != null;
     }
 
-    public async Task<bool> UserExistsAsync(string email)
+    public async Task<bool> UserExistsAsync(string email, string loginMethod)
     {
        var user = await _usersCollection.Aggregate()
-                                        .Match(user => user.Email == email)
+                                        .Match(user => user.Email == email && user.Provider == loginMethod)
                                         .FirstOrDefaultAsync();
 
         return user != null;

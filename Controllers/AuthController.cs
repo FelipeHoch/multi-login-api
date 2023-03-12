@@ -1,7 +1,6 @@
 ﻿using AutoMapper;
 using Google.Apis.Auth;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using multi_login.Entities;
@@ -14,7 +13,7 @@ using System.Text;
 
 namespace multi_login.Controllers;
 
-[Route("auth")]
+[Route("api/auth")]
 [ApiController]
 public class AuthController : ControllerBase
 {
@@ -43,11 +42,15 @@ public class AuthController : ControllerBase
 
         if (!await _userRepository.UserIsAuth(userForAuth)) return Unauthorized();
 
-        var user = await _userRepository.GetUserByEmailAsync(userForAuth.Email);
+        var user = await _userRepository.GetUserByEmailAsync(userForAuth.Email, "credentials");
 
         var token = GenerateToken(user);
-            
-        return Ok(token);
+
+        var userWithToken = _mapper.Map<UserFriendlyWithTokenDTO>(user);
+
+        userWithToken.Token = token;
+
+        return Ok(userWithToken);
     }
 
     [HttpPost("google")]
@@ -59,7 +62,6 @@ public class AuthController : ControllerBase
         GoogleJsonWebSignature.Payload tokenPayload;
         User user;
 
-        Console.WriteLine(token.Token);
 
         try
         {
@@ -72,7 +74,7 @@ public class AuthController : ControllerBase
 
         if (!TokenIsValid(tokenPayload)) return Unauthorized();
 
-        bool userExists = await _userRepository.UserExistsAsync(tokenPayload.Email);
+        bool userExists = await _userRepository.UserExistsAsync(tokenPayload.Email, "Google");
 
         if (!userExists)
         {
@@ -82,7 +84,7 @@ public class AuthController : ControllerBase
         } 
         else
         {
-            user = await _userRepository.GetUserByEmailAsync(tokenPayload.Email);
+            user = await _userRepository.GetUserByEmailAsync(tokenPayload.Email, "Google");
         }
 
         string appToken = GenerateToken(user);
@@ -92,15 +94,6 @@ public class AuthController : ControllerBase
         userWithToken.Token = appToken;
 
         return Ok(userWithToken);
-    }
-
-    [HttpPut]
-    [AllowAnonymous]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public ActionResult Test()
-    {
-        return Ok("/h");
     }
 
     private string CalcHmac(string data)
@@ -155,11 +148,5 @@ public class AuthController : ControllerBase
         if (tokenPayload == null) return false;
 
         return tokenPayload.AudienceAsList.FirstOrDefault(aud => aud == googleClient) != null;
-    }
-
-    private static string Base64Encode<T>(T data)
-    {
-        var dataStr = System.Text.Json.JsonSerializer.Serialize(data);
-        return Convert.ToBase64String(Encoding.UTF8.GetBytes(dataStr));
     }
 }
