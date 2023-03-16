@@ -26,7 +26,7 @@ public class UserRepository : IUserRepository
 
     public void DeleteUser(string id)
     {
-        throw new NotImplementedException();
+        _usersCollection.DeleteOneAsync(usr => usr.Id == id);
     }
 
     public Task<User> GetUserByEmailAsync(string email, string loginMethod)
@@ -38,7 +38,9 @@ public class UserRepository : IUserRepository
 
     public Task<User> GetUserByIdAsync(string id)
     {
-        throw new NotImplementedException();
+        return _usersCollection.Aggregate()
+                                     .Match(user => user.Id == id)
+                                     .FirstOrDefaultAsync();
     }
 
     public Task<IEnumerable<User>> GetUsersAsync()
@@ -48,7 +50,7 @@ public class UserRepository : IUserRepository
 
     public void UpdateUser(User user)
     {
-        throw new NotImplementedException();
+        _usersCollection.ReplaceOneAsync(usr => usr.Id == user.Id, user);
     }
 
     public async Task<bool> UserIsAuth(UserForAuthWithPasswordDTO userForAuth)
