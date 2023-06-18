@@ -115,7 +115,7 @@ public class AuthController : ControllerBase
             new Claim("name", user.Name, ClaimTypes.GivenName),
             new Claim("role", user.Role, ClaimTypes.Role),
             new Claim("email", user.Email, ClaimTypes.Email),
-            new Claim("act", user.Id, ClaimTypes.Actor)
+            new Claim("sub", user.Id, ClaimTypes.Sid)
         };
 
         var iat = (int)(DateTime.Now.Subtract(DateTime.UnixEpoch)).TotalSeconds;
@@ -130,7 +130,8 @@ public class AuthController : ControllerBase
             claims: claims,
             signingCredentials: signinCredentials,
             issuer: iss,
-            expires: dt
+            expires: dt,
+            audience: Environment.GetEnvironmentVariable("JWT_AUDIENCE")
         );
 
         var token = new JwtSecurityTokenHandler().WriteToken(tokenOptions);
