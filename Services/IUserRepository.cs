@@ -13,4 +13,5 @@ public interface IUserRepository
     void DeleteUser(string id);
     Task<bool> UserIsAuth(UserForAuthWithPasswordDTO userForAuth);
     Task<bool> UserExistsAsync(string id, string loginMethod);
+    Task<bool> IsPasswordCorrect(string id, string password);
 }

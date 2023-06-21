@@ -10,8 +10,15 @@ public class UserFriendlyDTO
     public string Name { get; set; } = string.Empty;
     [JsonPropertyName("email")]
     public string Email { get; set; } = string.Empty;
+
+    [JsonPropertyName("provider")]
+    public string Provider { get; set; } = string.Empty;
+
     [JsonPropertyName("role")]
     public string Role { get; set; } = string.Empty;
+
+    [JsonPropertyName("newPassword")]
+    public string? NewPassword { get; set; }
 
 }
 

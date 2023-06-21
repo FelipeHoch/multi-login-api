@@ -2,17 +2,18 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
-using MongoDB.Bson;
 using multi_login.Entities;
 using multi_login.Models;
 using multi_login.Services;
+using multi_login.Utils;
+using System.Security.Cryptography;
 using System.Text;
 
 
 namespace multi_login.Controllers;
 
 [Route("api/[controller]")]
+[Authorize(Roles = "admin")]
 [ApiController]
 public class UserController : ControllerBase
 {
@@ -20,30 +21,21 @@ public class UserController : ControllerBase
 
     private readonly IMapper _mapper;
 
+    private readonly IJwtService _jwtService;
+
     public UserController(
         IUserRepository userRepository,
-        IMapper mapper
+        IMapper mapper,
+        IJwtService jwtService
         ) 
     {
         _userRepository = userRepository;
 
         _mapper = mapper;
+
+        _jwtService = jwtService;
     }
 
-    [HttpGet]
-    public IEnumerable<string> Get()
-    {
-        return new string[] { "value1", "value2" };
-    }
-
-    [AllowAnonymous]
-    [HttpGet("{id}", Name = "UserById")]
-    public string Get(int id)
-    {
-        return "value";
-    }
-
-    [AllowAnonymous]
     [HttpPost]
     public async Task<ActionResult> Post([FromBody] User userToCreate, [FromQuery] string? redirect)
     {
@@ -63,9 +55,23 @@ public class UserController : ControllerBase
                 return BadRequest();
             }
 
+            var password = "";
+
+            if (userToCreate.Provider == "credentials")
+            {
+                password = PasswordGenerator.GeneratePassword(12);
+
+                userToCreate.Password = CalcHmac(password);
+            }
+
             var user = await _userRepository.AddUser(userToCreate);
 
             var userFriendly = _mapper.Map<UserFriendlyDTO>(user);
+
+            if (userToCreate.Provider == "credentials")
+            {
+                userFriendly.NewPassword = password;
+            }
 
             if (redirect != null)
             {          
@@ -80,7 +86,6 @@ public class UserController : ControllerBase
         }
     }
 
-    [AllowAnonymous]
     [HttpPatch("{id}", Name = "UpdateUser")]
     public async Task<IActionResult> Patch(string id, [FromQuery] string? redirect, [FromBody] JsonPatchDocument<User> patchDocument)
     {
@@ -117,7 +122,27 @@ public class UserController : ControllerBase
             new { id = userFriendly.Id }, userFriendly);
     }
 
-    [AllowAnonymous]
+    [HttpPatch("{id}/change-password")]
+    public async Task<IActionResult> Patch(string id)
+    {
+        var userToUpdate = await _userRepository.GetUserByIdAsync(id);
+
+        if (userToUpdate == null)
+        {
+            return NotFound();
+        }
+
+        if (userToUpdate.Provider == "google") return BadRequest("Usuário não permitido troca de senha");
+
+        var password = PasswordGenerator.GeneratePassword(12);
+
+        userToUpdate.Password = CalcHmac(password);
+
+        _userRepository.UpdateUser(userToUpdate);
+
+        return Ok(password);
+    }
+
     [HttpDelete("{id}")]
     public async Task<ActionResult> Delete(string id, [FromQuery] string? redirect)
     {
@@ -149,5 +174,17 @@ public class UserController : ControllerBase
     {
         var dataStr = System.Text.Json.JsonSerializer.Serialize(data);
         return Convert.ToBase64String(Encoding.UTF8.GetBytes(dataStr));
+    }
+
+    private string CalcHmac(string data)
+    {
+        var secretKey = Environment.GetEnvironmentVariable("SECRET_PASSWORD");
+
+        byte[] key = Encoding.ASCII.GetBytes(secretKey);
+        HMACSHA256 myhmacsha256 = new(key);
+        byte[] byteArray = Encoding.ASCII.GetBytes(data);
+        MemoryStream stream = new(byteArray);
+        string result = myhmacsha256.ComputeHash(stream).Aggregate("", (s, e) => s + string.Format("{0:x2}", e), s => s);
+        return result;
     }
 }

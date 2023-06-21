@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using multi_login.Services;
@@ -14,6 +14,14 @@ internal static class StartupHelperExtensions
     public static WebApplication ConfigureServices(
         this WebApplicationBuilder builder)
     {
+
+        builder.WebHost.UseKestrel(options =>
+        {
+            options.AddServerHeader = false;
+        });
+
+        builder.Services.AddAntiforgery();
+
         builder.Services.AddAuthentication(options =>
         {
             options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -26,15 +34,22 @@ internal static class StartupHelperExtensions
             {
                 IssuerSigningKey = new SymmetricSecurityKey
                 (Encoding.UTF8.GetBytes(Environment.GetEnvironmentVariable("JWT_KEY"))),
+                ValidAudiences = Environment.GetEnvironmentVariable("JWT_AUDIENCES").Split(","),
                 ValidIssuer = Environment.GetEnvironmentVariable("JWT_ISSUER"),
                 ValidateIssuer = true,
-                ValidateAudience = false,
+                ValidateAudience = true,
                 ValidateLifetime = true,
                 ValidateIssuerSigningKey = true,
             };
         });
 
-        builder.Services.AddAuthorization();
+        builder.Services.AddAuthorization(auth => 
+        {
+            auth.AddPolicy(JwtBearerDefaults.AuthenticationScheme,
+                new AuthorizationPolicyBuilder(JwtBearerDefaults.AuthenticationScheme)
+                .RequireAuthenticatedUser()
+                .Build());
+        });
 
         builder.Services.AddMongoRepository(new MongoRepositoryOptions
         {
@@ -92,6 +107,10 @@ internal static class StartupHelperExtensions
             });
         });
 
+        builder.Services.AddHttpContextAccessor();
+
+        builder.Services.AddScoped<IJwtService, JwtService>();
+
         builder.Services.AddScoped<IUserRepository, UserRepository>();
 
         builder.Services.AddAutoMapper(
@@ -111,7 +130,7 @@ internal static class StartupHelperExtensions
                 .SetIsOriginAllowed(s => true)
                 .AllowAnyHeader()
                 .AllowAnyMethod()
-                .AllowCredentials()
+                .AllowAnyOrigin()
                 );
 
             app.UseSwagger();
@@ -123,11 +142,13 @@ internal static class StartupHelperExtensions
                 .SetIsOriginAllowed(s => true)
                 .AllowAnyHeader()
                 .AllowAnyMethod()
-                .AllowCredentials()
+                .AllowAnyOrigin()
                 );
 
         app.UseAuthentication();
         app.UseAuthorization();
+        app.UseSecurityHeaders();
+        app.UseHsts();
 
         app.MapControllers().RequireAuthorization();
 

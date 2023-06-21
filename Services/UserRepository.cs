@@ -70,4 +70,13 @@ public class UserRepository : IUserRepository
 
         return user != null;
     }
+
+    public async Task<bool> IsPasswordCorrect(string id, string password)
+    {
+        var user = await _usersCollection.Aggregate()
+                                         .Match(user => user.Id == id && user.Password == password)
+                                         .FirstOrDefaultAsync();
+
+        return user != null;
+    }
 }
