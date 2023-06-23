@@ -14,4 +14,5 @@ public interface IUserRepository
     Task<bool> UserIsAuth(UserForAuthWithPasswordDTO userForAuth);
     Task<bool> UserExistsAsync(string id, string loginMethod);
     Task<bool> IsPasswordCorrect(string id, string password);
+    Task<bool> IsDuplicatedEmail(string id, string email, string loginMethod);
 }

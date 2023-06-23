@@ -93,7 +93,7 @@ public class UserController : ControllerBase
 
         if (userToUpdate == null)
         {
-            return NotFound();
+            return NotFound("Usuário não encontrado");
         }
 
         patchDocument.ApplyTo(userToUpdate, ModelState);
@@ -108,6 +108,8 @@ public class UserController : ControllerBase
                     return BadRequest(ModelState);
             }
         }
+
+        if (await _userRepository.IsDuplicatedEmail(userToUpdate.Id, userToUpdate.Email, userToUpdate.Provider)) return BadRequest("Email já cadastrado");
 
         _userRepository.UpdateUser(userToUpdate);
 
@@ -132,7 +134,7 @@ public class UserController : ControllerBase
             return NotFound();
         }
 
-        if (userToUpdate.Provider == "google") return BadRequest("Usuário não permitido troca de senha");
+        if (userToUpdate.Provider == "google") return BadRequest("Usuário não permitido para troca de senha");
 
         var password = PasswordGenerator.GeneratePassword(12);
 

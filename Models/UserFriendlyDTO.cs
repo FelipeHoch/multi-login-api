@@ -18,6 +18,7 @@ public class UserFriendlyDTO
     public string Role { get; set; } = string.Empty;
 
     [JsonPropertyName("newPassword")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? NewPassword { get; set; }
 
 }
