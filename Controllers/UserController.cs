@@ -48,6 +48,8 @@ public class UserController : ControllerBase
 
             userToCreate.Provider = userToCreate.Provider.ToLower();
 
+            userToCreate.Email = userToCreate.Email.ToLower();
+
             var userAlreadyExists = await _userRepository.GetUserByEmailAsync(userToCreate.Email, userToCreate.Provider);
 
             if (userAlreadyExists != null) 
@@ -108,6 +110,8 @@ public class UserController : ControllerBase
                     return BadRequest(ModelState);
             }
         }
+
+        userToUpdate.Email = userToUpdate.Email.ToLower();
 
         if (await _userRepository.IsDuplicatedEmail(userToUpdate.Id, userToUpdate.Email, userToUpdate.Provider)) return BadRequest("Email já cadastrado");
 

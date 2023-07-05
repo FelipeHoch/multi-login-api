@@ -105,7 +105,7 @@ public class ProfileController : ControllerBase
 
             if (user.Provider == "google") return BadRequest("Usuário não permitido troca de senha");
  
-            if (user.Password != CalcHmac(changePasswordDTO.OldPassword)) return BadRequest();
+            if (user.Password != CalcHmac(changePasswordDTO.OldPassword)) return BadRequest("Senha incorreta");
 
             user.Password = CalcHmac(changePasswordDTO.NewPassword);
 
