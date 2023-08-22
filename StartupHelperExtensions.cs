@@ -4,12 +4,14 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using multi_login.Services;
 using Newtonsoft.Json.Serialization;
+using Serilog;
 using System.Text;
 
 namespace multi_login;
 
 internal static class StartupHelperExtensions
 {
+
     // Add services to the container.
     public static WebApplication ConfigureServices(
         this WebApplicationBuilder builder)
@@ -20,7 +22,12 @@ internal static class StartupHelperExtensions
             options.AddServerHeader = false;
         });
 
+        builder.Host.UseSerilog();
+
+        builder.WebHost.UseSerilog();
+
         builder.Services.AddAntiforgery();
+
 
         builder.Services.AddAuthentication(options =>
         {
@@ -137,7 +144,7 @@ internal static class StartupHelperExtensions
             app.UseSwaggerUI();
         }
 
-	app.UseCors(builder =>
+	    app.UseCors(builder =>
                 builder
                 .SetIsOriginAllowed(s => true)
                 .AllowAnyHeader()
@@ -148,7 +155,7 @@ internal static class StartupHelperExtensions
         app.UseAuthentication();
         app.UseAuthorization();
         app.UseSecurityHeaders();
-        app.UseHsts();
+        app.UseHsts();   
 
         app.MapControllers().RequireAuthorization();
 

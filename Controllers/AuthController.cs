@@ -23,13 +23,17 @@ public class AuthController : ControllerBase
 
     private readonly IMapper _mapper;
 
-    public AuthController(IUserRepository userRepository, IConfiguration config, IMapper mapper)
+    private readonly ILogger<AuthController> _logger;
+
+
+    public AuthController(IUserRepository userRepository, IConfiguration config, IMapper mapper, ILogger<AuthController> logger)
     {
         _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
 
         _config = config;
 
         _mapper = mapper;
+        _logger = logger;
     }
 
     [HttpPost(Name = "AuthUserWithPassword")]
@@ -40,7 +44,11 @@ public class AuthController : ControllerBase
     {
         userForAuth.Password = CalcHmac(userForAuth.Password);
 
-        if (!await _userRepository.UserIsAuth(userForAuth)) return Unauthorized();
+        if (!await _userRepository.UserIsAuth(userForAuth)) {
+            _logger.LogError($"User {userForAuth.Email} failed to authenticate.");
+
+            return Unauthorized();
+        }     
 
         var user = await _userRepository.GetUserByEmailAsync(userForAuth.Email, "credentials");
 
@@ -49,6 +57,8 @@ public class AuthController : ControllerBase
         var userWithToken = _mapper.Map<UserFriendlyWithTokenDTO>(user);
 
         userWithToken.Token = token;
+
+        _logger.LogInformation($"User {userForAuth.Email} authenticated successfully.");
 
         return Ok(userWithToken);
     }
@@ -68,15 +78,23 @@ public class AuthController : ControllerBase
         } 
         catch
         {
+            _logger.LogError($"Invalid token {token.Token}.");
+
             return Unauthorized();
         }
 
-        if (!TokenIsValid(tokenPayload)) return Unauthorized();
+        if (!TokenIsValid(tokenPayload)) {
+            _logger.LogError($"Invalid token {token.Token}.");
+
+            return Unauthorized();
+        }
 
         bool userExists = await _userRepository.UserExistsAsync(tokenPayload.Email, "google");
 
         if (!userExists)
         {
+            _logger.LogInformation($"User {tokenPayload.Email} not exists.");
+
             return Unauthorized();
         } 
         else
@@ -89,6 +107,8 @@ public class AuthController : ControllerBase
         var userWithToken = _mapper.Map<UserFriendlyWithTokenDTO>(user);
 
         userWithToken.Token = appToken;
+
+        _logger.LogInformation($"User {tokenPayload.Email} authenticated successfully.");
 
         return Ok(userWithToken);
     }
