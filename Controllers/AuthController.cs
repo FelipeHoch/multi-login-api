@@ -2,6 +2,7 @@
 using Google.Apis.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using multi_login.Entities;
 using multi_login.Models;
@@ -37,6 +38,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost(Name = "AuthUserWithPassword")]
+    [EnableRateLimiting("fixed")]
     [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -64,6 +66,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("google")]
+    [EnableRateLimiting("fixed")]
     [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -135,7 +138,8 @@ public class AuthController : ControllerBase
             new Claim("name", user.Name, ClaimTypes.GivenName),
             new Claim("role", user.Role, ClaimTypes.Role),
             new Claim("email", user.Email, ClaimTypes.Email),
-            new Claim("sub", user.Id, ClaimTypes.Sid)
+            new Claim("sub", user.Id, ClaimTypes.Sid),
+            new Claim(ClaimTypes.NameIdentifier, user.Id, ClaimTypes.NameIdentifier)
         };
 
         var iat = (int)(DateTime.Now.Subtract(DateTime.UnixEpoch)).TotalSeconds;

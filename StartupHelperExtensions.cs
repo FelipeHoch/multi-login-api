@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using multi_login.Services;
@@ -50,7 +52,7 @@ internal static class StartupHelperExtensions
             };
         });
 
-        builder.Services.AddAuthorization(auth => 
+        builder.Services.AddAuthorization(auth =>
         {
             auth.AddPolicy(JwtBearerDefaults.AuthenticationScheme,
                 new AuthorizationPolicyBuilder(JwtBearerDefaults.AuthenticationScheme)
@@ -76,9 +78,9 @@ internal static class StartupHelperExtensions
         builder.Services.AddSwaggerGen(op =>
         {
             op.SwaggerDoc("v1", new OpenApiInfo
-            { 
-                Title = "Authentication API", 
-                Version = "v1", 
+            {
+                Title = "Authentication API",
+                Version = "v1",
                 Description = "API for auth with email/password, Google auth and Microsoft auth, also contains an admin system for handle users",
                 Contact = new OpenApiContact
                 {
@@ -89,7 +91,7 @@ internal static class StartupHelperExtensions
 
             op.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
             {
-                Description = "JWT Authorization Header. \r\n\r\n" + 
+                Description = "JWT Authorization Header. \r\n\r\n" +
                     "Type 'Bearer' and your token on the right side, as in the example: Bearer {your token}",
                 Name = "Authorization",
                 In = ParameterLocation.Header,
@@ -113,6 +115,14 @@ internal static class StartupHelperExtensions
                     }
             });
         });
+
+        builder.Services.AddRateLimiter(_ => _
+            .AddFixedWindowLimiter(policyName: "fixed", options =>
+            {
+                options.PermitLimit = 100;
+                options.Window = TimeSpan.FromSeconds(60);
+            })
+        );
 
         builder.Services.AddHttpContextAccessor();
 
@@ -144,6 +154,8 @@ internal static class StartupHelperExtensions
             app.UseSwaggerUI();
         }
 
+        app.UseSerilogRequestLogging();
+
 	    app.UseCors(builder =>
                 builder
                 .SetIsOriginAllowed(s => true)
@@ -152,10 +164,11 @@ internal static class StartupHelperExtensions
                 .AllowAnyOrigin()
                 );
 
+        app.UseRateLimiter();
         app.UseAuthentication();
         app.UseAuthorization();
         app.UseSecurityHeaders();
-        app.UseHsts();   
+        app.UseHsts();
 
         app.MapControllers().RequireAuthorization();
 

@@ -6,6 +6,9 @@ using multi_login.Entities;
 using multi_login.Models;
 using multi_login.Services;
 using multi_login.Utils;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -23,10 +26,13 @@ public class UserController : ControllerBase
 
     private readonly IJwtService _jwtService;
 
+    private readonly IHttpContextAccessor _httpContext;
+
     public UserController(
         IUserRepository userRepository,
         IMapper mapper,
-        IJwtService jwtService
+        IJwtService jwtService,
+        IHttpContextAccessor httpContext
         ) 
     {
         _userRepository = userRepository;
@@ -34,13 +40,17 @@ public class UserController : ControllerBase
         _mapper = mapper;
 
         _jwtService = jwtService;
+
+        _httpContext = httpContext;
     }
 
     [HttpPost]
-    public async Task<ActionResult> Post([FromBody] User userToCreate, [FromQuery] string? redirect)
+    public async Task<ActionResult> Post([FromBody] JObject userFromClient, [FromQuery] string? redirect)
     {
         try
         {
+            var userToCreate = userFromClient.ToObject<User>();
+
             if (userToCreate == null)
             {
                 return BadRequest();
@@ -76,11 +86,33 @@ public class UserController : ControllerBase
             }
 
             if (redirect != null)
-            {          
-                return RedirectPreserveMethod(redirect + "?data=" + Base64Encode(userFriendly));
+            {       
+                var authHeader = _httpContext.HttpContext.Request.Headers["Authorization"];
+
+                _httpContext.HttpContext.Response.Headers.Add("Authorization", authHeader);
+
+                var http = new HttpClient();
+
+                http.DefaultRequestHeaders.Authorization = AuthenticationHeaderValue.Parse(authHeader);
+                
+                var userSerialized = JsonConvert.SerializeObject(userFromClient, new JsonSerializerSettings
+                {
+                    ContractResolver = new Newtonsoft.Json.Serialization.CamelCasePropertyNamesContractResolver()
+                });
+
+                var content = new StringContent(userSerialized, Encoding.UTF8, "application/json");
+
+                var response = await http.PostAsync(redirect + "?data=" + Base64Encode(userFriendly), content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    return Ok(userFromClient);
+                }
+                
+                return BadRequest();
             }
 
-            return CreatedAtRoute("UserById", new { id = userFriendly.Id }, userFriendly);
+            return Ok(userFriendly);
         }
         catch (Exception) 
         {
@@ -119,7 +151,33 @@ public class UserController : ControllerBase
 
         if (redirect != null) 
         {
-            return RedirectPreserveMethod(redirect);
+            var authHeader = _httpContext.HttpContext.Request.Headers["Authorization"];
+
+            _httpContext.HttpContext.Response.Headers.Add("Authorization", authHeader);
+
+            var http = new HttpClient();
+
+            http.DefaultRequestHeaders.Authorization = AuthenticationHeaderValue.Parse(authHeader);
+
+            var patchSerialized = JsonConvert.SerializeObject(patchDocument, new JsonSerializerSettings
+            {
+                ContractResolver = new Newtonsoft.Json.Serialization.CamelCasePropertyNamesContractResolver()
+            });
+
+            var content = new StringContent(patchSerialized, Encoding.UTF8, "application/json");
+
+            var response = await http.PatchAsync(redirect, content);
+
+            var stringResult = await response.Content.ReadAsStringAsync();
+
+            var result = JsonConvert.DeserializeObject<JObject>(stringResult);
+
+            if (response.IsSuccessStatusCode)
+            {
+                return Ok(result);
+            }
+
+            return BadRequest();
         }
 
         var userFriendly = _mapper.Map<UserFriendlyDTO>(userToUpdate);
@@ -165,7 +223,22 @@ public class UserController : ControllerBase
 
             if (redirect != null)
             {
-                return RedirectPreserveMethod(redirect);
+                var authHeader = _httpContext.HttpContext.Request.Headers["Authorization"];
+
+                _httpContext.HttpContext.Response.Headers.Add("Authorization", authHeader);
+
+                var http = new HttpClient();
+
+                http.DefaultRequestHeaders.Authorization = AuthenticationHeaderValue.Parse(authHeader);
+
+                var response = await http.DeleteAsync(redirect);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    return Ok();
+                }
+
+                return BadRequest();
             }
 
             return NoContent();

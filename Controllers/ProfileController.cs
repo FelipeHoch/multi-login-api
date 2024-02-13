@@ -6,8 +6,13 @@ using multi_login.Entities;
 using multi_login.Models;
 using multi_login.Services;
 using multi_login.Utils;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Serialization;
+using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json.Nodes;
 
 
 namespace multi_login.Controllers;
@@ -23,10 +28,13 @@ public class ProfileController : ControllerBase
 
     private readonly IJwtService _jwtService;
 
+    private readonly IHttpContextAccessor _httpContext;
+
     public ProfileController(
         IUserRepository userRepository,
         IMapper mapper,
-        IJwtService jwtService
+        IJwtService jwtService,
+        IHttpContextAccessor httpContext
         ) 
     {
         _userRepository = userRepository;
@@ -34,6 +42,8 @@ public class ProfileController : ControllerBase
         _mapper = mapper;
 
         _jwtService = jwtService;
+
+        _httpContext = httpContext;
     }
 
     [HttpGet(Name = "GetProfile")]
@@ -81,7 +91,33 @@ public class ProfileController : ControllerBase
         {
             redirect += $"/{_jwtService.GetUserId()}";
 
-            return RedirectPreserveMethod(redirect);
+            var authHeader = _httpContext.HttpContext.Request.Headers["Authorization"];
+
+            _httpContext.HttpContext.Response.Headers.Add("Authorization", authHeader);
+
+            var http = new HttpClient();
+
+            http.DefaultRequestHeaders.Authorization = AuthenticationHeaderValue.Parse(authHeader);
+
+            var patchSerialized = JsonConvert.SerializeObject(patchDocument, new JsonSerializerSettings
+            {
+                ContractResolver = new CamelCasePropertyNamesContractResolver()
+            });
+
+            var content = new StringContent(patchSerialized, Encoding.UTF8, "application/json");
+
+            var response = await http.PatchAsync(redirect, content);
+
+            var responseContent = await response.Content.ReadAsStringAsync();
+
+            var result = JsonConvert.DeserializeObject<JObject>(responseContent);
+
+            if (response.IsSuccessStatusCode)
+            {
+                return Ok(result);
+            }
+
+            return BadRequest();
         }
 
         var userFriendly = _mapper.Map<UserFriendlyDTO>(userToUpdate);
