@@ -38,7 +38,6 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost(Name = "AuthUserWithPassword")]
-    [EnableRateLimiting("fixed")]
     [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -66,7 +65,6 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("google")]
-    [EnableRateLimiting("fixed")]
     [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
