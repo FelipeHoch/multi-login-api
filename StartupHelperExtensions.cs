@@ -158,10 +158,11 @@ internal static class StartupHelperExtensions
 
 	    app.UseCors(builder =>
                 builder
-                .SetIsOriginAllowed(s => true)
+                .WithOrigins(Environment.GetEnvironmentVariable("LOGIN_CLIENT"))
+                .SetIsOriginAllowedToAllowWildcardSubdomains()
+                .SetIsOriginAllowed(x => true)
                 .AllowAnyHeader()
-                .AllowAnyMethod()
-                .AllowAnyOrigin()
+                .AllowAnyMethod()                
                 );
 
         app.UseRateLimiter();
