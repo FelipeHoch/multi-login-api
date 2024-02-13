@@ -149,6 +149,7 @@ internal static class StartupHelperExtensions
                 .SetIsOriginAllowed(s => true)
                 .AllowAnyHeader()
                 .AllowAnyMethod()
+                .AllowCredentials()
                 );
 
             app.UseSwagger();
@@ -163,6 +164,7 @@ internal static class StartupHelperExtensions
                 .SetIsOriginAllowedToAllowWildcardSubdomains()
                 .SetIsOriginAllowed(x => true)
                 .AllowAnyHeader()
+                .AllowCredentials()
                 .AllowAnyMethod()                
                 );
 
