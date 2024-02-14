@@ -116,13 +116,13 @@ internal static class StartupHelperExtensions
             });
         });
 
-        //builder.Services.AddRateLimiter(_ => _
-        //    .AddFixedWindowLimiter(policyName: "fixed", options =>
-        //    {
-        //        options.PermitLimit = 100;
-        //        options.Window = TimeSpan.FromSeconds(60);
-        //    })
-        //);
+        builder.Services.AddRateLimiter(_ => _
+            .AddFixedWindowLimiter(policyName: "fixed", options =>
+            {
+                options.PermitLimit = 100;
+                options.Window = TimeSpan.FromSeconds(60);
+            })
+        );
 
         builder.Services.AddHttpContextAccessor();
 
@@ -144,12 +144,10 @@ internal static class StartupHelperExtensions
         {
             app.UseCors(builder =>
                 builder
-                .WithOrigins(Environment.GetEnvironmentVariable("LOGIN_CLIENT"))
-                .SetIsOriginAllowedToAllowWildcardSubdomains()
                 .SetIsOriginAllowed(s => true)
                 .AllowAnyHeader()
                 .AllowAnyMethod()
-                .AllowCredentials()
+                .AllowAnyOrigin()
                 );
 
             app.UseSwagger();
@@ -160,17 +158,17 @@ internal static class StartupHelperExtensions
 
 	    app.UseCors(builder =>
                 builder
-                .WithOrigins(Environment.GetEnvironmentVariable("LOGIN_CLIENT"))
-                .SetIsOriginAllowedToAllowWildcardSubdomains()
-                .SetIsOriginAllowed(x => true)
+                .SetIsOriginAllowed(s => true)
                 .AllowAnyHeader()
-                .AllowCredentials()
-                .AllowAnyMethod()                
+                .AllowAnyMethod()
+                .AllowAnyOrigin()
                 );
 
-        //app.UseRateLimiter();
+        app.UseRateLimiter();
         app.UseAuthentication();
         app.UseAuthorization();
+        app.UseSecurityHeaders();
+        app.UseHsts();
 
         app.MapControllers().RequireAuthorization();
 
