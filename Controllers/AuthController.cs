@@ -90,6 +90,8 @@ public class AuthController : ControllerBase
             return Unauthorized();
         }
 
+        tokenPayload.Email = tokenPayload.Email.ToLower();
+
         bool userExists = await _userRepository.UserExistsAsync(tokenPayload.Email, "google");
 
         if (!userExists)
